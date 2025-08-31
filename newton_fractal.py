@@ -22,11 +22,11 @@ def newton(f,z):
         return 0
     
 def valori(f,x,y):
-    z = complex(x,y)
+    z_grid = x + 1j*y
 
-    L = [z]
+    L = z_grid.copy() ## fa una copia della griglia iniziale
     for i in range(ITERAZIONI):
-        L.append(newton(f,L[i]))
+        L = newton(f,L)
     
     return L
 
@@ -41,16 +41,16 @@ def valori(f,x,y):
 radici = [1,-1]
 """
 
-"""
+
 # z^3 - 1
 radici = [(1+0j), (-0.5+0.8660254j), (-0.5-0.8660254j)]
+
+
 """
-
-
 # cos(z)
 N = 10
 radici = [np.pi*(k-1/2) for k in range(-N,N+1)]
-
+"""
 
 """
 # sin(z)
@@ -75,42 +75,29 @@ radici = [-28.2755847, -25.1311579, -21.993216, -18.8467406, -15.712014,
 radici_trovate = []
 colori = [(255,0,0), (0,255,0), (0,0,255)]  # rosso, verde, 
 
-def fractal(array, valori, x, y, tol=TOLLERANZA):
-    zf = valori[-1]  # ultimo valore della lista
+def fractal(array, valori, tol=TOLLERANZA):
+    valori_finali = valori.copy()
+    distanze = np.array([np.abs(valori_finali - r) for r in radici])
 
-    if abs(zf) > 1e6:   # divergenza numerica
-        array[x, y] = (0, 0, 0)
-        return
-    
-    # Faccio il controllo qua per evitare di inserire
-    # nella lista valori di divergenza
-    if((zf in radici_trovate) == False):
-        radici_trovate.append(zf)
+    # Trova indice della radice più vicina per ogni pixel
+    indici = np.argmin(distanze, axis=0)
+    min_distanze = np.min(distanze, axis=0)
 
-# Applico un algoritmo di colorazione diverso
-# quando la lunghezza di radici è piccola perchè
-# l'algoritmo di colorazione basato su mappa continua
-# genera un grafico noioso per poche radici tipo monocolore
+    # Costruisci immagine finale
+    array[:] = (255, 255, 255)  # default bianco
+    for i, r in enumerate(radici):
+        mask = min_distanze < tol
+        mask &= (indici == i)
+        if len(radici) <= 3:
+            array[mask] = colori[i]
+        else:
+            h = i / max(1, len(radici)-1)
+            rgb = cm.hsv(h)[:3]
+            array[mask] = (np.array(rgb) * 255).astype(np.uint8)
 
-    if(len(radici) <= 3):
-        # Controlla a quale radice è vicino
-        for r, c in zip(radici, colori):
-            if abs(zf - r) < tol:
-                array[x, y] = c
-                return
-    else:
-        # Controlla a quale radice è vicino
-        for i, r in enumerate(radici):
-            if abs(zf - r) < tol:
-                # scegli colore in base a indice radice
-                h = i / max(1, len(radici)-1)   # normalizza [0,1]
-                rgb = cm.hsv(h)[:3]             # colormap continua
-                array[x, y] = tuple(int(255*v) for v in rgb)
-                return
-
-    # Se non converge a nessuna radice conosciuta
-    array[x, y] = (255, 255, 255)
-
+    for r in radici:
+       if np.any(np.abs(valori_finali - r) < tol):
+         radici_trovate.append(r)
 
 def filtra_radici(tolleranza=1e-4):
     radici_filtrate = []

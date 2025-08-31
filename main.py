@@ -6,7 +6,7 @@ import newton_fractal as nw
 
 
 def f(z):
-    return cmath.cos(z)
+    return z**3-1
 
 def disegna_assi(screen, origine_x, origine_y, w, h, scala_x, scala_y, passo_pixel=50):
     colore_assi = (255, 255, 255)
@@ -30,7 +30,7 @@ def disegna_assi(screen, origine_x, origine_y, w, h, scala_x, scala_y, passo_pix
         pygame.draw.line(screen, colore_assi, (origine_x-3, j), (origine_x+3, j), 1)
 
 
-scala = 0.1
+scala = 1
 pygame.init()
 w, h = 600, 600
 origine_x, origine_y = w/2, h/2
@@ -49,15 +49,19 @@ def wait():
             if event.type == pygame.QUIT:
                 running = False
 
-print("Inizio...")
-for i in range(w):
-    for j in range(h):
-        x = (i - origine_x) * scala_x
-        y = (j - origine_y) * scala_y
-        valori_pixel = nw.valori(f, -x, y)
-        nw.fractal(array, valori_pixel, i, j)
-print("Fine.")
+i_arr = np.arange(w)
+j_arr = np.arange(h)
 
+# Questa è una hack della vetorializazzione calcolo direttamente tutte
+# le combinazioni in 600X600 (OVVIAMENTE dilatate e traslate correttamente)
+# cambio il segno perchè euristicamente altrimenti mi trovo una figura specchiata
+x_grid = -((i_arr[:, None] - origine_x) * scala_x)  
+y_grid = (j_arr[None, :] - origine_y) * scala_y
+
+print("Inizio...")
+valori_pixel = nw.valori(f, x_grid, y_grid)
+nw.fractal(array, valori_pixel)
+print("Fine.")
 
 radici_filtrate = nw.filtra_radici()
 print("Radici filtrate:", radici_filtrate)
