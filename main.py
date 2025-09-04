@@ -4,7 +4,6 @@ import math
 import cmath
 import newton_fractal as nw
 
-
 def f(z):
     return z**3-1
 
@@ -30,7 +29,8 @@ def disegna_assi(screen, origine_x, origine_y, w, h, scala_x, scala_y, passo_pix
         pygame.draw.line(screen, colore_assi, (origine_x-3, j), (origine_x+3, j), 1)
 
 
-scala = 1
+
+scala = 0.2
 pygame.init()
 w, h = 600, 600
 origine_x, origine_y = w/2, h/2
@@ -39,39 +39,64 @@ R_y = 1.5*scala
 scala_x = (2.5*R_x)/w
 scala_y = (2.5*R_y)/h
 
-screen = pygame.display.set_mode((w, h))
-array = np.zeros((w, h, 3), dtype=np.uint8)
+# La finestra contiene due immagini
+screen = pygame.display.set_mode((w*2, h))
+pygame.display.set_caption("Frattale e Lyapunov Newton")
 
-def wait():
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+surface_frac = pygame.Surface((w, h))
+surface_lyap = pygame.Surface((w, h))
 
 i_arr = np.arange(w)
 j_arr = np.arange(h)
-
-# Questa è una hack della vetorializazzione calcolo direttamente tutte
-# le combinazioni in 600X600 (OVVIAMENTE dilatate e traslate correttamente)
-# cambio il segno perchè euristicamente altrimenti mi trovo una figura specchiata
-x_grid = -((i_arr[:, None] - origine_x) * scala_x)  
+x_grid = -((i_arr[:, None] - origine_x) * scala_x)
 y_grid = (j_arr[None, :] - origine_y) * scala_y
+Z = x_grid + 1j*y_grid
 
-print("Inizio...")
+# Frattale di Newton
+print("Calcolo frattale...")
+array_frac = np.zeros((w, h, 3), dtype=np.uint8)
 valori_pixel = nw.valori(f, x_grid, y_grid)
-nw.fractal(array, valori_pixel)
-print("Fine.")
+nw.fractal(array_frac, valori_pixel)
+pygame.surfarray.blit_array(surface_frac, array_frac)
+disegna_assi(surface_frac, origine_x, origine_y, w, h, scala_x, scala_y)
+print("Frattale pronto.")
 
+# Lyapunov
+print("Calcolo Lyapunov...")
+ly = np.zeros(Z.size)
+for idx, z in enumerate(Z.flat):
+    ly[idx] = nw.lyapunov(f, z)
+ly = ly.reshape(Z.shape)
+
+# Tolgo i valori infiniti per la visualizzazione
+ly_clean = ly.copy()
+ly_clean[np.isinf(ly_clean)] = np.min(ly_clean[~np.isinf(ly_clean)])
+
+# i valori troppo grandi li metto True
+threshold = 0.5  # regola in base ai tuoi valori
+mask = ly_clean > threshold
+rgb_lyap = np.zeros((w, h, 3), dtype=np.uint8)
+rgb_lyap[mask] = [255, 255, 255]  # bianco, il resto rimane nero
+
+pygame.surfarray.blit_array(surface_lyap, rgb_lyap)
+disegna_assi(surface_lyap, origine_x, origine_y, w, h, scala_x, scala_y)
+print("Lyapunov pronto.")
+
+# Stampa le radici
 radici_filtrate = nw.filtra_radici()
 print("Radici filtrate:", radici_filtrate)
 print("Numero di radici trovate: ",len(radici_filtrate))
-pygame.surfarray.blit_array(screen, array)
 
-disegna_assi(screen, origine_x, origine_y, w, h, scala_x, scala_y)
 
+screen.blit(surface_frac, (0,0))
+screen.blit(surface_lyap, (w,0))
 pygame.display.flip()
-pygame.image.save(screen, "sin(z).png")
 
-wait()
+# --- Loop attesa ---
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
 pygame.quit()

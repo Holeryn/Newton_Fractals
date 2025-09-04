@@ -106,3 +106,26 @@ def filtra_radici(tolleranza=1e-4):
             radici_filtrate.append(r)
     return radici_filtrate
 
+
+def lyapunov(f, z0, max_iter=100, delta=1e-15):
+    z = z0
+    sum_log_deriv = 0.0
+
+    for _ in range(max_iter):
+        try:
+            fz = f(z)
+            dfz = derivata(f, z)
+            if dfz == 0:
+                return -np.inf
+            z_new = z - fz / dfz
+            delta_z = abs(z_new - z)
+            if delta_z < delta:
+                break
+            sum_log_deriv += np.log(abs(dfz))
+            z = z_new
+        except Exception as e:
+            print(f"Errore nel calcolo di Lyapunov: {e}")
+            return -np.inf
+
+    lyapunov_exponent = sum_log_deriv / max_iter
+    return lyapunov_exponent
