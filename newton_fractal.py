@@ -41,15 +41,16 @@ def valori(f,x,y):
 radici = [1,-1]
 """
 
-"""
+
 # z^3 - 1
 radici = [(1+0j), (-0.5+0.8660254j), (-0.5-0.8660254j)]
+
+
 """
-
-
 # cos(z)
 N = 10
 radici = [np.pi*(k-1/2) for k in range(-N,N+1)]
+"""
 
 """
 # sin(z)

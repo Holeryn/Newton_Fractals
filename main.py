@@ -1,11 +1,11 @@
 import pygame
 import numpy as np
 import math
-import cmath
+import threading
 import newton_fractal as nw
 
 def f(z):
-    return np.cos(z)
+    return z**3-1
 
 def disegna_assi(screen, origine_x, origine_y, w, h, scala_x, scala_y, passo_pixel=50):
     colore_assi = (255, 255, 255)
@@ -28,8 +28,8 @@ def disegna_assi(screen, origine_x, origine_y, w, h, scala_x, scala_y, passo_pix
         pygame.draw.line(screen, colore_assi, (origine_x-3, j), (origine_x+3, j), 1)
 
 
-
-scala = 0.1
+# Parametri principali
+scala = 1
 pygame.init()
 w, h = 600, 600
 origine_x, origine_y = w/2, h/2
@@ -38,7 +38,7 @@ R_y = 1.5*scala
 scala_x = (2.5*R_x)/w
 scala_y = (2.5*R_y)/h
 
-# La finestra contiene due immagini
+# Finestra principale
 screen = pygame.display.set_mode((w*2, h))
 pygame.display.set_caption("Frattale e Lyapunov Newton")
 
@@ -51,40 +51,35 @@ x_grid = -((i_arr[:, None] - origine_x) * scala_x)
 y_grid = (j_arr[None, :] - origine_y) * scala_y
 Z = x_grid + 1j*y_grid
 
-# Frattale di Newton
-print("Calcolo frattale...")
-array_frac = np.zeros((w, h, 3), dtype=np.uint8)
-valori_pixel = nw.valori(f, x_grid, y_grid)
-nw.fractal(array_frac, valori_pixel)
-pygame.surfarray.blit_array(surface_frac, array_frac)
-disegna_assi(surface_frac, origine_x, origine_y, w, h, scala_x, scala_y)
-print("Frattale pronto.")
+# Funzione thread frattale
+def calcola_frattale():
+    print("Calcolo frattale...")
+    array_frac = np.zeros((w, h, 3), dtype=np.uint8)
+    valori_pixel = nw.valori(f, x_grid, y_grid)
+    nw.fractal(array_frac, valori_pixel)
+    pygame.surfarray.blit_array(surface_frac, array_frac)
+    disegna_assi(surface_frac, origine_x, origine_y, w, h, scala_x, scala_y)
+    print("Frattale pronto.")
 
-print("Lyapunov...")
-ly = nw.lyapunov(f, Z) 
-# Tolgo i valori infiniti per la visualizzazione
-ly_clean = ly.copy()
-ly_clean[np.isinf(ly_clean)] = np.min(ly_clean[~np.isinf(ly_clean)])
+# Funzione thread Lyapunov
+def calcola_lyapunov():
+    print("Lyapunov...")
+    ly = nw.lyapunov(f, Z)
+    ly_clean = ly.copy()
+    ly_clean[np.isinf(ly_clean)] = np.min(ly_clean[~np.isinf(ly_clean)])
+    threshold = 0.8
+    mask = ly_clean > threshold
+    rgb_lyap = np.zeros((w, h, 3), dtype=np.uint8)
+    rgb_lyap[mask] = [255, 255, 255]
+    pygame.surfarray.blit_array(surface_lyap, rgb_lyap)
+    disegna_assi(surface_lyap, origine_x, origine_y, w, h, scala_x, scala_y)
+    print("Lyapunov pronto.")
 
-# i valori troppo grandi li metto True
-threshold = 0.8  # regola in base ai tuoi valori
-mask = ly_clean > threshold
-rgb_lyap = np.zeros((w, h, 3), dtype=np.uint8)
-rgb_lyap[mask] = [255, 255, 255]  # bianco, il resto rimane nero
-
-pygame.surfarray.blit_array(surface_lyap, rgb_lyap)
-disegna_assi(surface_lyap, origine_x, origine_y, w, h, scala_x, scala_y)
-print("Lyapunov pronto.")
-
-# Stampa le radici
-radici_filtrate = nw.filtra_radici()
-print("Radici filtrate:", radici_filtrate)
-print("Numero di radici trovate: ",len(radici_filtrate))
-
-
-screen.blit(surface_frac, (0,0))
-screen.blit(surface_lyap, (w,0))
-pygame.display.flip()
+# Avvio dei thread
+thread_frac = threading.Thread(target=calcola_frattale)
+thread_lyap = threading.Thread(target=calcola_lyapunov)
+thread_frac.start()
+thread_lyap.start()
 
 running = True
 while running:
@@ -92,4 +87,11 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
+    # Blit aggiornato ogni ciclo
+    screen.blit(surface_frac, (0,0))
+    screen.blit(surface_lyap, (w,0))
+    pygame.display.flip()
+
+thread_frac.join()
+thread_lyap.join()
 pygame.quit()
