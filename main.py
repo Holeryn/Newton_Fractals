@@ -5,7 +5,7 @@ import cmath
 import newton_fractal as nw
 
 def f(z):
-    return z**3-1
+    return np.cos(z)
 
 def disegna_assi(screen, origine_x, origine_y, w, h, scala_x, scala_y, passo_pixel=50):
     colore_assi = (255, 255, 255)
@@ -25,12 +25,11 @@ def disegna_assi(screen, origine_x, origine_y, w, h, scala_x, scala_y, passo_pix
 
     for j in range(0, h, passo_pixel):
         y_val = (origine_y - j) * scala_y
-        screen.blit(font.render(f"{y_val:.2f}", True, colore_assi), (origine_x+5, j-7))
         pygame.draw.line(screen, colore_assi, (origine_x-3, j), (origine_x+3, j), 1)
 
 
 
-scala = 0.2
+scala = 0.1
 pygame.init()
 w, h = 600, 600
 origine_x, origine_y = w/2, h/2
@@ -61,19 +60,14 @@ pygame.surfarray.blit_array(surface_frac, array_frac)
 disegna_assi(surface_frac, origine_x, origine_y, w, h, scala_x, scala_y)
 print("Frattale pronto.")
 
-# Lyapunov
-print("Calcolo Lyapunov...")
-ly = np.zeros(Z.size)
-for idx, z in enumerate(Z.flat):
-    ly[idx] = nw.lyapunov(f, z)
-ly = ly.reshape(Z.shape)
-
+print("Lyapunov...")
+ly = nw.lyapunov(f, Z) 
 # Tolgo i valori infiniti per la visualizzazione
 ly_clean = ly.copy()
 ly_clean[np.isinf(ly_clean)] = np.min(ly_clean[~np.isinf(ly_clean)])
 
 # i valori troppo grandi li metto True
-threshold = 0.5  # regola in base ai tuoi valori
+threshold = 0.8  # regola in base ai tuoi valori
 mask = ly_clean > threshold
 rgb_lyap = np.zeros((w, h, 3), dtype=np.uint8)
 rgb_lyap[mask] = [255, 255, 255]  # bianco, il resto rimane nero
@@ -92,7 +86,6 @@ screen.blit(surface_frac, (0,0))
 screen.blit(surface_lyap, (w,0))
 pygame.display.flip()
 
-# --- Loop attesa ---
 running = True
 while running:
     for event in pygame.event.get():

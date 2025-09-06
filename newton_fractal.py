@@ -41,16 +41,15 @@ def valori(f,x,y):
 radici = [1,-1]
 """
 
-
+"""
 # z^3 - 1
 radici = [(1+0j), (-0.5+0.8660254j), (-0.5-0.8660254j)]
-
-
 """
+
+
 # cos(z)
 N = 10
 radici = [np.pi*(k-1/2) for k in range(-N,N+1)]
-"""
 
 """
 # sin(z)
@@ -107,25 +106,22 @@ def filtra_radici(tolleranza=1e-4):
     return radici_filtrate
 
 
-def lyapunov(f, z0, max_iter=100, delta=1e-15):
-    z = z0
-    sum_log_deriv = 0.0
+def lyapunov(f, z0, max_iter=100, delta=1e-10):
+    Z = z0.copy().astype(np.complex128)  # supporto per dinamica complessa se serve
+    sum_log_deriv = np.zeros_like(Z, dtype=np.float64)
 
     for _ in range(max_iter):
-        try:
-            fz = f(z)
-            dfz = derivata(f, z)
-            if dfz == 0:
-                return -np.inf
-            z_new = z - fz / dfz
-            delta_z = abs(z_new - z)
-            if delta_z < delta:
-                break
-            sum_log_deriv += np.log(abs(dfz))
-            z = z_new
-        except Exception as e:
-            print(f"Errore nel calcolo di Lyapunov: {e}")
-            return -np.inf
+        fZ = f(Z)
+        dFZ = derivata(f, Z)
 
-    lyapunov_exponent = sum_log_deriv / max_iter
-    return lyapunov_exponent
+        mask = dFZ != 0
+        Z_new = np.where(mask, Z - fZ / dFZ, Z)
+        delta_Z = np.abs(Z_new - Z)
+        sum_log_deriv = np.where(mask, sum_log_deriv + np.log(np.abs(dFZ)), sum_log_deriv)
+        Z = Z_new
+
+        # Convergenza
+        if np.all(delta_Z < delta):
+            break
+
+    return sum_log_deriv / max_iter
