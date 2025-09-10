@@ -34,23 +34,22 @@ def valori(f,x,y):
 # il giusto colore
 # nero diverge
 # bianco converge
-# colori ciclo
 
 """
 # z^2 - 1
 radici = [1,-1]
 """
 
-
+"""
 # z^3 - 1
 radici = [(1+0j), (-0.5+0.8660254j), (-0.5-0.8660254j)]
-
-
 """
+
+
 # cos(z)
 N = 10
 radici = [np.pi*(k-1/2) for k in range(-N,N+1)]
-"""
+
 
 """
 # sin(z)
@@ -79,12 +78,14 @@ def fractal(array, valori, tol=TOLLERANZA):
     valori_finali = valori.copy()
     distanze = np.array([np.abs(valori_finali - r) for r in radici])
 
-    # Trova indice della radice più vicina per ogni pixel
     indici = np.argmin(distanze, axis=0)
     min_distanze = np.min(distanze, axis=0)
 
-    # Costruisci immagine finale
-    array[:] = (255, 255, 255)  # default bianco
+
+# Utilizzo due mappe diverse a seconda del numero di radici
+# perchè con poche radici la mappa continua è brutta :(
+
+    array[:] = (255, 255, 255)  # bianco
     for i, r in enumerate(radici):
         mask = min_distanze < tol
         mask &= (indici == i)
@@ -108,7 +109,7 @@ def filtra_radici(tolleranza=1e-4):
 
 
 def lyapunov(f, z0, max_iter=100, delta=1e-10):
-    Z = z0.copy().astype(np.complex128)  # supporto per dinamica complessa se serve
+    Z = z0.copy().astype(np.complex128)  
     sum_log_deriv = np.zeros_like(Z, dtype=np.float64)
 
     for _ in range(max_iter):
